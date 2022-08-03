@@ -34,6 +34,12 @@ type StatusRepo struct {
 func (r *StatusRepo) Get(ctx context.Context) (Status, error) {
 	filter := bson.M{"_id": statusID}
 	res := r.c.FindOne(ctx, filter)
+	if res.Err() == mongo.ErrNoDocuments {
+		return Status{
+			ID:   statusID,
+			Mode: ModeNewWord,
+		}, nil
+	}
 	var s Status
 	if res.Err() != nil {
 		return s, res.Err()
