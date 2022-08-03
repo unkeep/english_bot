@@ -139,7 +139,7 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 			w.SuccessCount++
 			reply = "Correct!\n"
 			needNewWord = true
-		} else if w.Text == "/giveup" {
+		} else if text == "/giveup" {
 			reply = "Ok. The correct answer is: " + w.Text + "\n"
 			w.FailCount++
 			needNewWord = true
