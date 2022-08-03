@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -69,9 +70,30 @@ func (r *EngWordsRepo) GetByID(ctx context.Context, id string) (EngWord, error) 
 	return w, nil
 }
 
+// touched at
+// touched count ask
+// success pct ask
+
 func (r *EngWordsRepo) PickOneToPractise(ctx context.Context) (EngWord, error) {
 	// nolint: govet
-	opts := options.FindOne().SetSort(bson.D{{"last_touched_at", 1}})
+	sortings := []bson.D{
+		{
+			{"last_touched_at", 1},
+		},
+		{
+			{"success_pct", 1},
+		},
+		{
+			{"success_pct", 1},
+		},
+		{
+			{"touched_count", 1},
+		},
+	}
+
+	i := rand.New(rand.NewSource(time.Now().UnixNano())).Int() % 4
+
+	opts := options.FindOne().SetSort(sortings[i])
 
 	res := r.c.FindOne(ctx, bson.D{}, opts)
 	var b EngWord
