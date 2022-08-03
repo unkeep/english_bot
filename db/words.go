@@ -84,14 +84,11 @@ func (r *EngWordsRepo) PickOneToPractise(ctx context.Context) (EngWord, error) {
 			{"success_pct", 1},
 		},
 		{
-			{"success_pct", 1},
-		},
-		{
 			{"touched_count", 1},
 		},
 	}
 
-	i := rand.New(rand.NewSource(time.Now().UnixNano())).Int() % 4
+	i := rand.New(rand.NewSource(time.Now().UnixNano())).Int() % 3
 
 	opts := options.FindOne().SetSort(sortings[i])
 
