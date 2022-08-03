@@ -76,6 +76,15 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 		if err != nil {
 			return fmt.Errorf("repo.Words.AddNew: %w", err)
 		}
+
+		status = db.Status{
+			Mode:   db.ModeHint,
+			WordID: id,
+		}
+		if err := h.repo.Status.Save(ctx, status); err != nil {
+			return fmt.Errorf("repo.Status.Save: %w", err)
+		}
+
 		_, err = h.tgBot.SendMessage(tg.BotMessage{
 			ChatID:       msg.ChatID,
 			ReplyToMsgID: msg.ID,
@@ -170,7 +179,6 @@ func (h *handler) handleBtnClickMessage(ctx context.Context, click tg.BtnClick) 
 
 	status.Mode = db.ModeHint
 	status.WordID = word.ID
-	status.MsgID = click.MessageID
 
 	if err := h.repo.Status.Save(ctx, status); err != nil {
 		return fmt.Errorf("h.repo.Status.Save: %w", err)

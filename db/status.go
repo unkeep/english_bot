@@ -20,7 +20,6 @@ type Status struct {
 	ID     string `bson:"_id,omitempty"`
 	Mode   int    `bson:"mode"`
 	WordID string `bson:"word_id"`
-	MsgID  int    `bson:"msg_id"`
 }
 
 func getStatusRepo(mngDB *mongo.Database) *StatusRepo {
