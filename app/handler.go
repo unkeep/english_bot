@@ -148,6 +148,8 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 			reply = "Wrong!"
 		}
 
+		w.SuccessPct = float32(w.SuccessCount) / float32(w.TouchedCount) * 100.0
+
 		if err := h.repo.Words.Save(ctx, w); err != nil {
 			return fmt.Errorf("repo.Words.Save: %w", err)
 		}

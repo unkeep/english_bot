@@ -20,6 +20,7 @@ type EngWord struct {
 	TouchedCount  uint               `bson:"touched_count"`
 	SuccessCount  uint               `bson:"success_count"`
 	FailCount     uint               `bson:"fail_count"`
+	SuccessPct    float32            `bson:"success_pct"`
 }
 
 func getEngWordsRepo(mngDB *mongo.Database) *EngWordsRepo {
