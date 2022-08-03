@@ -50,7 +50,7 @@ func (r *EngWordsRepo) AddNew(ctx context.Context, text string) (string, error) 
 }
 
 func (r *EngWordsRepo) GetByID(ctx context.Context, id string) (EngWord, error) {
-	filter := bson.M{"_id": id}
+	filter := bson.M{"_id": primitive.ObjectIDFromHex(id)}
 	res := r.c.FindOne(ctx, filter)
 	var b EngWord
 	if res.Err() != nil {
