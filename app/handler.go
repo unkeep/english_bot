@@ -21,6 +21,7 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 	log.Println(msg)
 
 	text := strings.TrimSpace(msg.Text)
+	text = strings.ToLower(msg.Text)
 
 	if msg.ChatID != h.cfg.TgChatID && msg.ChatID != h.cfg.TgAdminChatID {
 		return fmt.Errorf("message from unknown chat: %+v", msg)
@@ -133,9 +134,15 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 		w.LastTouchedAt = time.Now().Unix()
 		w.TouchedCount++
 		var reply string
+		var needNewWord bool
 		if w.Text == text {
 			w.SuccessCount++
 			reply = "Correct!\n"
+			needNewWord = true
+		} else if w.Text == "/giveup" {
+			reply = "Ok. The correct answer is: " + w.Text + "\n"
+			w.FailCount++
+			needNewWord = true
 		} else {
 			w.FailCount++
 			reply = "Wrong!"
@@ -145,12 +152,12 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 			return fmt.Errorf("repo.Words.Save: %w", err)
 		}
 
-		if w.Text == text {
+		if needNewWord {
 			newW, err := h.repo.Words.PickOneToPractise(ctx)
 			if err != nil {
 				return fmt.Errorf("repo.Words.PickOneToPractise: %w", err)
 			}
-			reply += "Hint is: " + newW.Hint
+			reply += "Hint is:\n" + newW.Hint
 			status.WordID = newW.ID.Hex()
 
 			if h.repo.Status.Save(ctx, status); err != nil {
