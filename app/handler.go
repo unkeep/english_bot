@@ -137,17 +137,23 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 			w.SuccessCount++
 			reply = "Correct!\n"
 
-			w, err = h.repo.Words.PickOneToPractise(ctx)
+			newW, err := h.repo.Words.PickOneToPractise(ctx)
 			if err != nil {
 				return fmt.Errorf("repo.Words.PickOneToPractise: %w", err)
 			}
-			reply += "Hint is: " + w.Hint
+			reply += "Hint is: " + newW.Hint
+			status.WordID = newW.ID.Hex()
 		} else {
 			w.FailCount++
 			reply = "Wrong!"
 		}
+
 		if err := h.repo.Words.Save(ctx, w); err != nil {
-			return fmt.Errorf("h.repo.Words.Save: %w", err)
+			return fmt.Errorf("repo.Words.Save: %w", err)
+		}
+
+		if h.repo.Status.Save(ctx, status); err != nil {
+			return fmt.Errorf("repo.Status.Save: %w", err)
 		}
 
 		_, err = h.tgBot.SendMessage(tg.BotMessage{
