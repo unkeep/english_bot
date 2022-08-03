@@ -86,7 +86,6 @@ func (b *Bot) GetUpdates(ctx context.Context, msgs chan<- UserMsg, btnClicks cha
 			fmt.Println("btn clicked")
 			if upd.CallbackQuery != nil {
 				btnClicks <- BtnClick{
-					// MessageID: upd.CallbackQuery.Message.MessageID,
 					BtnID: upd.CallbackQuery.Data,
 				}
 			}

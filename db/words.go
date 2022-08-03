@@ -12,14 +12,14 @@ import (
 )
 
 type EngWord struct {
-	ID            string `bson:"_id,omitempty"`
-	Text          string `bson:"text"`
-	Hint          string `bson:"hint"`
-	AddedAt       int64  `bson:"added_at"`
-	LastTouchedAt int64  `bson:"last_touched_at"`
-	TouchedCount  uint   `bson:"touched_count"`
-	SuccessCount  uint   `bson:"success_count"`
-	FailCount     uint   `bson:"fail_count"`
+	ID            primitive.ObjectID `bson:"_id,omitempty"`
+	Text          string             `bson:"text"`
+	Hint          string             `bson:"hint"`
+	AddedAt       int64              `bson:"added_at"`
+	LastTouchedAt int64              `bson:"last_touched_at"`
+	TouchedCount  uint               `bson:"touched_count"`
+	SuccessCount  uint               `bson:"success_count"`
+	FailCount     uint               `bson:"fail_count"`
 }
 
 func getEngWordsRepo(mngDB *mongo.Database) *EngWordsRepo {
@@ -32,7 +32,6 @@ type EngWordsRepo struct {
 
 func (r *EngWordsRepo) AddNew(ctx context.Context, text string) (string, error) {
 	w := EngWord{
-		ID:            "",
 		Text:          text,
 		AddedAt:       time.Now().Unix(),
 		LastTouchedAt: 0,
@@ -50,18 +49,23 @@ func (r *EngWordsRepo) AddNew(ctx context.Context, text string) (string, error) 
 }
 
 func (r *EngWordsRepo) GetByID(ctx context.Context, id string) (EngWord, error) {
-	filter := bson.M{"_id": primitive.ObjectIDFromHex(id)}
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return EngWord{}, fmt.Errorf("primitive.ObjectIDFromHex: %w", err)
+	}
+
+	filter := bson.M{"_id": objID}
 	res := r.c.FindOne(ctx, filter)
-	var b EngWord
+	var w EngWord
 	if res.Err() != nil {
-		return b, res.Err()
+		return w, res.Err()
 	}
 
-	if err := res.Decode(&b); err != nil {
-		return b, err
+	if err := res.Decode(&w); err != nil {
+		return w, err
 	}
 
-	return b, nil
+	return w, nil
 }
 
 func (r *EngWordsRepo) PickOneToPractise(ctx context.Context) (EngWord, error) {

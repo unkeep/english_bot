@@ -40,7 +40,7 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 			}
 			status = db.Status{
 				Mode:   db.ModePractising,
-				WordID: w.ID,
+				WordID: w.ID.Hex(),
 			}
 			if err := h.repo.Status.Save(ctx, status); err != nil {
 				return fmt.Errorf("repo.Status.Save: %w", err)
@@ -178,7 +178,7 @@ func (h *handler) handleBtnClickMessage(ctx context.Context, click tg.BtnClick) 
 	}
 
 	status.Mode = db.ModeHint
-	status.WordID = word.ID
+	status.WordID = word.ID.Hex()
 
 	if err := h.repo.Status.Save(ctx, status); err != nil {
 		return fmt.Errorf("h.repo.Status.Save: %w", err)
