@@ -15,9 +15,8 @@ type Btn struct {
 
 // BtnClick is a telegram inline btn reply
 type BtnClick struct {
-	// ChatID int64
-	MessageID int
-	BtnID     string
+	BtnID string
+	Msg   UserMsg
 }
 
 type BotMessage struct {

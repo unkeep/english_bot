@@ -30,12 +30,12 @@ type StatusRepo struct {
 	c *mongo.Collection
 }
 
-func (r *StatusRepo) Get(ctx context.Context) (Status, error) {
+func (r *StatusRepo) Get(ctx context.Context, id string) (Status, error) {
 	filter := bson.M{"_id": statusID}
 	res := r.c.FindOne(ctx, filter)
 	if res.Err() == mongo.ErrNoDocuments {
 		return Status{
-			ID:   statusID,
+			ID:   id,
 			Mode: ModeNewWord,
 		}, nil
 	}

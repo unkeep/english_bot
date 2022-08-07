@@ -27,58 +27,59 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 		return fmt.Errorf("message from unknown chat: %+v", msg)
 	}
 
-	status, err := h.repo.Status.Get(ctx)
+	status, err := h.repo.Status.Get(ctx, fmt.Sprint(msg.ChatID))
 	if err != nil {
 		return fmt.Errorf("repo.Status.Get: %w", err)
 	}
 
 	// start/stop practicing
-	if msg.ChatID == h.cfg.TgAdminChatID {
-		if msg.Text == "/start_practicing" {
-			w, err := h.repo.Words.PickOneToPractise(ctx)
-			if err != nil {
-				return fmt.Errorf("repo.Words.PickOneToPractise: %w", err)
-			}
-			status = db.Status{
-				Mode:   db.ModePractising,
-				WordID: w.ID.Hex(),
-			}
-			if err := h.repo.Status.Save(ctx, status); err != nil {
-				return fmt.Errorf("repo.Status.Save: %w", err)
-			}
-
-			_, err = h.tgBot.SendMessage(tg.BotMessage{
-				ChatID:       msg.ChatID,
-				ReplyToMsgID: 0,
-				Text:         fmt.Sprintf("Hint is:\n%s", w.Hint),
-				TextMarkdown: false,
-			})
-			if err != nil {
-				return fmt.Errorf("tgBot.SendMessage: %w", err)
-			}
-
-			return nil
+	if msg.Text == "/start_practicing" {
+		w, err := h.repo.Words.PickOneToPractise(ctx)
+		if err != nil {
+			return fmt.Errorf("repo.Words.PickOneToPractise: %w", err)
+		}
+		status = db.Status{
+			ID:     status.ID,
+			Mode:   db.ModePractising,
+			WordID: w.ID.Hex(),
+		}
+		if err := h.repo.Status.Save(ctx, status); err != nil {
+			return fmt.Errorf("repo.Status.Save: %w", err)
 		}
 
-		if msg.Text == "/finish_practicing" {
-			status = db.Status{
-				Mode: db.ModeNewWord,
-			}
-			if err := h.repo.Status.Save(ctx, status); err != nil {
-				return fmt.Errorf("repo.Status.Save: %w", err)
-			}
-			return nil
+		_, err = h.tgBot.SendMessage(tg.BotMessage{
+			ChatID:       msg.ChatID,
+			ReplyToMsgID: 0,
+			Text:         fmt.Sprintf("Hint is:\n%s", w.Hint),
+			TextMarkdown: false,
+		})
+		if err != nil {
+			return fmt.Errorf("tgBot.SendMessage: %w", err)
 		}
+
+		return nil
+	}
+
+	if msg.Text == "/finish_practicing" {
+		status = db.Status{
+			ID:   status.ID,
+			Mode: db.ModeNewWord,
+		}
+		if err := h.repo.Status.Save(ctx, status); err != nil {
+			return fmt.Errorf("repo.Status.Save: %w", err)
+		}
+		return nil
 	}
 
 	// new word
-	if msg.ChatID == h.cfg.TgChatID && status.Mode == db.ModeNewWord {
+	if status.Mode == db.ModeNewWord {
 		id, err := h.repo.Words.AddNew(ctx, text)
 		if err != nil {
 			return fmt.Errorf("repo.Words.AddNew: %w", err)
 		}
 
 		status = db.Status{
+			ID:     status.ID,
 			Mode:   db.ModeHint,
 			WordID: id,
 		}
@@ -103,7 +104,7 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 	}
 
 	// set hint
-	if msg.ChatID == h.cfg.TgChatID && status.Mode == db.ModeHint {
+	if status.Mode == db.ModeHint {
 		word, err := h.repo.Words.GetByID(ctx, status.WordID)
 		if err != nil {
 			return fmt.Errorf("repo.Words.GetByID: %w", err)
@@ -116,6 +117,7 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 		}
 
 		status = db.Status{
+			ID:   status.ID,
 			Mode: db.ModeNewWord,
 		}
 		if err := h.repo.Status.Save(ctx, status); err != nil {
@@ -126,7 +128,7 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 	}
 
 	// practising
-	if msg.ChatID == h.cfg.TgAdminChatID && status.Mode == db.ModePractising {
+	if status.Mode == db.ModePractising {
 		w, err := h.repo.Words.GetByID(ctx, status.WordID)
 		if err != nil {
 			return fmt.Errorf("h.repo.Words.GetByID: %w", err)
@@ -184,7 +186,7 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 }
 
 func (h *handler) handleBtnClickMessage(ctx context.Context, click tg.BtnClick) error {
-	status, err := h.repo.Status.Get(ctx)
+	status, err := h.repo.Status.Get(ctx, fmt.Sprint(click.Msg.ChatID))
 	if err != nil {
 		return fmt.Errorf("h.repo.Status.Get: %w", err)
 	}
@@ -202,7 +204,7 @@ func (h *handler) handleBtnClickMessage(ctx context.Context, click tg.BtnClick) 
 	}
 
 	_, err = h.tgBot.SendMessage(tg.BotMessage{
-		ChatID:       h.cfg.TgChatID,
+		ChatID:       click.Msg.ChatID,
 		Text:         fmt.Sprintf("write a hint for %q", word.Text),
 		TextMarkdown: false,
 	})

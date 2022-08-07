@@ -87,6 +87,11 @@ func (b *Bot) GetUpdates(ctx context.Context, msgs chan<- UserMsg, btnClicks cha
 			if upd.CallbackQuery != nil {
 				btnClicks <- BtnClick{
 					BtnID: upd.CallbackQuery.Data,
+					Msg: UserMsg{
+						ChatID: upd.Message.Chat.ID,
+						ID:     upd.Message.MessageID,
+						Text:   upd.Message.Text,
+					},
 				}
 			}
 		}
