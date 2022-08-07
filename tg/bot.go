@@ -88,9 +88,9 @@ func (b *Bot) GetUpdates(ctx context.Context, msgs chan<- UserMsg, btnClicks cha
 				btnClicks <- BtnClick{
 					BtnID: upd.CallbackQuery.Data,
 					Msg: UserMsg{
-						ChatID: upd.Message.Chat.ID,
-						ID:     upd.Message.MessageID,
-						Text:   upd.Message.Text,
+						ChatID: upd.CallbackQuery.Message.Chat.ID,
+						ID:     upd.CallbackQuery.Message.MessageID,
+						Text:   upd.CallbackQuery.Message.Text,
 					},
 				}
 			}
