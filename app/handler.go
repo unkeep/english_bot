@@ -142,7 +142,7 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 		var needNewWord bool
 		if w.Text == text {
 			w.SuccessCount++
-			reply = "✅\n"
+			reply = "✅"
 			needNewWord = true
 		} else if text == "/giveup" {
 			reply = "☹️ The correct answer is: " + w.Text + "\n"
@@ -159,14 +159,18 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 			return fmt.Errorf("repo.Words.Save: %w", err)
 		}
 
+		var newWordHintFileID string
 		if needNewWord {
 			newW, err := h.repo.Words.PickOneToPractise(ctx)
 			if err != nil {
 				return fmt.Errorf("repo.Words.PickOneToPractise: %w", err)
 			}
-			reply += newW.Hint
-			status.WordID = newW.ID.Hex()
+			if newW.Hint != "" {
+				reply += "\n" + newW.Hint
+			}
+			newWordHintFileID = newW.HintFileID
 
+			status.WordID = newW.ID.Hex()
 			if h.repo.Status.Save(ctx, status); err != nil {
 				return fmt.Errorf("repo.Status.Save: %w", err)
 			}
@@ -182,9 +186,9 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 			return fmt.Errorf("tgBot.SendMessage: %w", err)
 		}
 
-		if w.HintFileID != "" {
+		if newWordHintFileID != "" {
 			time.Sleep(time.Millisecond * 500)
-			_, err = h.tgBot.SendPhoto(msg.ChatID, w.HintFileID)
+			_, err = h.tgBot.SendPhoto(msg.ChatID, newWordHintFileID)
 			if err != nil {
 				return fmt.Errorf("tgBot.SendPhoto: %w", err)
 			}
