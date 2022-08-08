@@ -16,6 +16,7 @@ type EngWord struct {
 	ID            primitive.ObjectID `bson:"_id,omitempty"`
 	Text          string             `bson:"text"`
 	Hint          string             `bson:"hint"`
+	HintFileID    string             `bson:"hint_file_id"`
 	AddedAt       int64              `bson:"added_at"`
 	LastTouchedAt int64              `bson:"last_touched_at"`
 	TouchedCount  uint               `bson:"touched_count"`

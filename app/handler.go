@@ -47,14 +47,16 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 			return fmt.Errorf("repo.Status.Save: %w", err)
 		}
 
-		_, err = h.tgBot.SendMessage(tg.BotMessage{
-			ChatID:       msg.ChatID,
-			ReplyToMsgID: 0,
-			Text:         fmt.Sprintf("Hint is:\n%s", w.Hint),
-			TextMarkdown: false,
-		})
+		if w.HintFileID != "" {
+			_, err = h.tgBot.SendPhoto(msg.ChatID, w.HintFileID)
+		} else {
+			_, err = h.tgBot.SendMessage(tg.BotMessage{
+				ChatID: msg.ChatID,
+				Text:   w.Hint,
+			})
+		}
 		if err != nil {
-			return fmt.Errorf("tgBot.SendMessage: %w", err)
+			return fmt.Errorf("tgBot.SendMessage/SendPhoto: %w", err)
 		}
 
 		return nil
@@ -111,6 +113,7 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 		}
 
 		word.Hint = text
+		word.HintFileID = msg.PhotoID
 		err = h.repo.Words.Save(ctx, word)
 		if err != nil {
 			return fmt.Errorf("repo.Words.Save: %w", err)
@@ -139,15 +142,15 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 		var needNewWord bool
 		if w.Text == text {
 			w.SuccessCount++
-			reply = "Correct!\n"
+			reply = "✅\n"
 			needNewWord = true
 		} else if text == "/giveup" {
-			reply = "Ok. The correct answer is: " + w.Text + "\n"
+			reply = "☹️ The correct answer is: " + w.Text + "\n"
 			w.FailCount++
 			needNewWord = true
 		} else {
 			w.FailCount++
-			reply = "Wrong!"
+			reply = "❌"
 		}
 
 		w.SuccessPct = float32(w.SuccessCount) / float32(w.TouchedCount) * 100.0
@@ -161,7 +164,7 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 			if err != nil {
 				return fmt.Errorf("repo.Words.PickOneToPractise: %w", err)
 			}
-			reply += "Hint is:\n" + newW.Hint
+			reply += newW.Hint
 			status.WordID = newW.ID.Hex()
 
 			if h.repo.Status.Save(ctx, status); err != nil {
@@ -177,6 +180,14 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 		})
 		if err != nil {
 			return fmt.Errorf("tgBot.SendMessage: %w", err)
+		}
+
+		if w.HintFileID != "" {
+			time.Sleep(time.Millisecond * 500)
+			_, err = h.tgBot.SendPhoto(msg.ChatID, w.HintFileID)
+			if err != nil {
+				return fmt.Errorf("tgBot.SendPhoto: %w", err)
+			}
 		}
 
 		return nil

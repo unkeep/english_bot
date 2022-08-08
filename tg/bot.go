@@ -23,6 +23,18 @@ type Bot struct {
 	bot *tgbotapi.BotAPI
 }
 
+func (b *Bot) SendPhoto(chatID int64, fileID string) (int, error) {
+	msg := tgbotapi.NewPhotoShare(chatID, fileID)
+
+	sentMsg, err := b.bot.Send(msg)
+
+	if err != nil {
+		return 0, fmt.Errorf("bot.Send: %w", err)
+	}
+
+	return sentMsg.MessageID, nil
+}
+
 func (b *Bot) SendMessage(m BotMessage) (int, error) {
 	msg := tgbotapi.NewMessage(m.ChatID, m.Text)
 	if m.TextMarkdown {
@@ -77,23 +89,29 @@ func (b *Bot) GetUpdates(ctx context.Context, msgs chan<- UserMsg, btnClicks cha
 			return nil
 		case upd := <-updCh:
 			if upd.Message != nil {
-				msgs <- UserMsg{
-					ChatID: upd.Message.Chat.ID,
-					ID:     upd.Message.MessageID,
-					Text:   upd.Message.Text,
-				}
+				msgs <- userMessageFromTG(upd.Message)
 			}
 			fmt.Println("btn clicked")
 			if upd.CallbackQuery != nil {
 				btnClicks <- BtnClick{
 					BtnID: upd.CallbackQuery.Data,
-					Msg: UserMsg{
-						ChatID: upd.CallbackQuery.Message.Chat.ID,
-						ID:     upd.CallbackQuery.Message.MessageID,
-						Text:   upd.CallbackQuery.Message.Text,
-					},
+					Msg:   userMessageFromTG(upd.CallbackQuery.Message),
 				}
 			}
 		}
+	}
+}
+
+func userMessageFromTG(message *tgbotapi.Message) UserMsg {
+	var photoID string
+	if message.Photo != nil && len(*message.Photo) > 0 {
+		photoID = (*message.Photo)[0].FileID
+	}
+
+	return UserMsg{
+		ChatID:  message.Chat.ID,
+		ID:      message.MessageID,
+		Text:    message.Text,
+		PhotoID: photoID,
 	}
 }
