@@ -121,7 +121,7 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 
 		err = h.tgBot.EditBtns(msg.ChatID, status.BtnMessageID, []tg.Btn{{
 			ID:   fmt.Sprint(word.ID),
-			Text: "Edit hint",
+			Text: "✅ Edit hint",
 		}})
 		if err != nil {
 			return fmt.Errorf("tgBot.EditBtns: %w", err)
