@@ -17,9 +17,10 @@ const (
 const statusID = "mode_id"
 
 type Status struct {
-	ID     string `bson:"_id,omitempty"`
-	Mode   int    `bson:"mode"`
-	WordID string `bson:"word_id"`
+	ID           string `bson:"_id,omitempty"`
+	Mode         int    `bson:"mode"`
+	WordID       string `bson:"word_id"`
+	BtnMessageID int    `bson:"btn_message_id"`
 }
 
 func getStatusRepo(mngDB *mongo.Database) *StatusRepo {

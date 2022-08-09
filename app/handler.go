@@ -119,6 +119,14 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 			return fmt.Errorf("repo.Words.Save: %w", err)
 		}
 
+		err = h.tgBot.EditBtns(msg.ChatID, status.BtnMessageID, []tg.Btn{{
+			ID:   fmt.Sprint(word.ID),
+			Text: "Edit hint",
+		}})
+		if err != nil {
+			return fmt.Errorf("tgBot.EditBtns: %w", err)
+		}
+
 		status = db.Status{
 			ID:   status.ID,
 			Mode: db.ModeNewWord,
@@ -213,6 +221,7 @@ func (h *handler) handleBtnClickMessage(ctx context.Context, click tg.BtnClick) 
 
 	status.Mode = db.ModeHint
 	status.WordID = word.ID.Hex()
+	status.BtnMessageID = click.Msg.ID
 
 	if err := h.repo.Status.Save(ctx, status); err != nil {
 		return fmt.Errorf("h.repo.Status.Save: %w", err)
@@ -220,7 +229,7 @@ func (h *handler) handleBtnClickMessage(ctx context.Context, click tg.BtnClick) 
 
 	_, err = h.tgBot.SendMessage(tg.BotMessage{
 		ChatID:       click.Msg.ChatID,
-		Text:         fmt.Sprintf("write a hint for %q", word.Text),
+		Text:         fmt.Sprintf("Give a hint for %q", word.Text),
 		TextMarkdown: false,
 	})
 	if err != nil {
