@@ -93,7 +93,11 @@ func (r *EngWordsRepo) PickOneToPractise(ctx context.Context) (EngWord, error) {
 
 	opts := options.FindOne().SetSort(sortings[i])
 
-	res := r.c.FindOne(ctx, bson.D{}, opts)
+	// TODO: apply only when there are enough words
+	oneMinuteAgo := time.Now().Add(-time.Minute).Unix()
+	excludeRecentlyTouched := bson.M{"last_touched_at": bson.M{"$lt": oneMinuteAgo}}
+
+	res := r.c.FindOne(ctx, excludeRecentlyTouched, opts)
 	var b EngWord
 	if res.Err() != nil {
 		return b, res.Err()
