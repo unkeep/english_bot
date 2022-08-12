@@ -155,7 +155,7 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 		var needNewWord bool
 		if w.Text == text {
 			w.SuccessCount++
-			reply = "✅"
+			reply = "✅ Correct!"
 			needNewWord = true
 		} else if text == "/giveup" {
 			reply = "☹️ The correct answer is: " + w.Text + "\n"
@@ -163,7 +163,7 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 			needNewWord = true
 		} else {
 			w.FailCount++
-			reply = "❌"
+			reply = "❌ Wrong!"
 		}
 
 		w.SuccessPct = float32(w.SuccessCount) / float32(w.TouchedCount) * 100.0
@@ -179,7 +179,7 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 				return fmt.Errorf("repo.Words.PickOneToPractise: %w", err)
 			}
 			if newW.Hint != "" {
-				reply += "\n" + newW.Hint
+				reply += "\n\n" + newW.Hint
 			}
 			newWordHintFileID = newW.HintFileID
 
