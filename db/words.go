@@ -51,6 +51,27 @@ func (r *EngWordsRepo) AddNew(ctx context.Context, text string) (string, error) 
 	return id, nil
 }
 
+func (r *EngWordsRepo) AddBatch(ctx context.Context, wordsMap map[string]string) error {
+	words := make([]interface{}, 0, len(wordsMap))
+	for text, hint := range wordsMap {
+		w := EngWord{
+			Text:          text,
+			Hint:          hint,
+			AddedAt:       time.Now().Unix(),
+			LastTouchedAt: 0,
+			TouchedCount:  0,
+		}
+		words = append(words, w)
+	}
+
+	_, err := r.c.InsertMany(ctx, words)
+	if err != nil {
+		return fmt.Errorf("InsertMany: %w", err)
+	}
+
+	return nil
+}
+
 func (r *EngWordsRepo) GetByID(ctx context.Context, id string) (EngWord, error) {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {

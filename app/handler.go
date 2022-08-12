@@ -21,7 +21,7 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 	log.Println(msg)
 
 	text := strings.TrimSpace(msg.Text)
-	text = strings.ToLower(msg.Text)
+	text = strings.ToLower(text)
 
 	if msg.ChatID != h.cfg.TgChatID && msg.ChatID != h.cfg.TgAdminChatID {
 		return fmt.Errorf("message from unknown chat: %+v", msg)
@@ -30,6 +30,11 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 	status, err := h.repo.Status.Get(ctx, fmt.Sprint(msg.ChatID))
 	if err != nil {
 		return fmt.Errorf("repo.Status.Get: %w", err)
+	}
+
+	// load batch
+	if strings.HasPrefix(msg.Text, "/batch") {
+		return h.loadBatch(ctx, msg)
 	}
 
 	// start/stop practicing
@@ -179,7 +184,7 @@ func (h *handler) handleUserMessage(ctx context.Context, msg tg.UserMsg) error {
 			newWordHintFileID = newW.HintFileID
 
 			status.WordID = newW.ID.Hex()
-			if h.repo.Status.Save(ctx, status); err != nil {
+			if err := h.repo.Status.Save(ctx, status); err != nil {
 				return fmt.Errorf("repo.Status.Save: %w", err)
 			}
 		}
@@ -231,6 +236,50 @@ func (h *handler) handleBtnClickMessage(ctx context.Context, click tg.BtnClick) 
 		ChatID:       click.Msg.ChatID,
 		Text:         fmt.Sprintf("Give a hint for %q", word.Text),
 		TextMarkdown: false,
+	})
+	if err != nil {
+		return fmt.Errorf("tgBot.SendMessage: %w", err)
+	}
+
+	return nil
+}
+
+func (h *handler) loadBatch(ctx context.Context, msg tg.UserMsg) error {
+	lines := strings.Split(msg.Text, "\n")
+	if len(lines) < 2 {
+		return fmt.Errorf("invalid batch")
+	}
+
+	// remove prefix
+	lines = lines[1:]
+
+	var invalidLines []string
+	batch := make(map[string]string, len(lines))
+	for _, l := range lines {
+		parts := strings.Split(l, ":")
+		if len(parts) != 2 {
+			invalidLines = append(invalidLines, l)
+			continue
+		}
+
+		wordText, hint := strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
+		batch[wordText] = hint
+	}
+
+	if len(batch) > 0 {
+		if err := h.repo.Words.AddBatch(ctx, batch); err != nil {
+			return fmt.Errorf("Words.AddBatch: %w", err)
+		}
+	}
+
+	if len(invalidLines) > 0 {
+		return fmt.Errorf("some lines are invalid: %v", invalidLines)
+	}
+
+	_, err := h.tgBot.SendMessage(tg.BotMessage{
+		ChatID:       msg.ChatID,
+		ReplyToMsgID: msg.ID,
+		Text:         fmt.Sprintf("%d words had been added", len(batch)),
 	})
 	if err != nil {
 		return fmt.Errorf("tgBot.SendMessage: %w", err)
