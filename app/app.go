@@ -9,6 +9,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/gofrs/uuid"
+	"github.com/jackc/pgx/v4"
+
 	"github.com/unkeep/english_bot/db"
 	"github.com/unkeep/english_bot/tg"
 )
@@ -47,6 +50,53 @@ func (app *App) Run(ctx context.Context) error {
 		return fmt.Errorf("db.GetRepo: %w", err)
 	}
 
+	words, err := repo.Words.GetAll(ctx)
+	if err != nil {
+		log.Fatalf("GetAll: %s", err.Error())
+	}
+
+	log.Println("got words", len(words))
+
+	if connStr := os.Getenv("PG_DB"); connStr != "" {
+		const chatID = 114969818
+		conn, err := pgx.Connect(context.Background(), connStr)
+		if err != nil {
+			log.Fatalf("sql.Open: %s", err.Error())
+		}
+
+		pingCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+
+		if err := conn.Ping(pingCtx); err != nil {
+			log.Fatalf("ping: %s", err.Error())
+		}
+
+		for _, w := range words {
+			query := `insert into words (
+	chat_id,
+	id,
+	key_text,
+	hint_text,
+	hint_file_id,
+	added_at,
+	last_touched_at,
+	touched_count,
+	success_count,
+	fail_count,
+	success_pct,
+	ready
+)
+values($1,$2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`
+
+			id, _ := uuid.NewV4()
+			_, err := conn.Exec(ctx, query, chatID, id.String(), w.Text, w.Hint, w.HintFileID,
+				w.AddedAt, w.LastTouchedAt, w.TouchedCount, w.SuccessCount, w.FailCount, int(w.SuccessPct), true)
+			if err != nil {
+				log.Println("migrate word", err.Error())
+			}
+		}
+	}
+
 	log.Println("GetBot")
 	tgBot, err := tg.GetBot(cfg.TgToken)
 	if err != nil {
@@ -57,11 +107,11 @@ func (app *App) Run(ctx context.Context) error {
 	btnClickChan := make(chan tg.BtnClick)
 	critErrosChan := make(chan error)
 
-	go func() {
-		if err := tgBot.GetUpdates(ctx, msgChan, btnClickChan); err != nil {
-			critErrosChan <- fmt.Errorf("tgBot.GetUpdates: %w", err)
-		}
-	}()
+	// go func() {
+	// 	if err := tgBot.GetUpdates(ctx, msgChan, btnClickChan); err != nil {
+	// 		critErrosChan <- fmt.Errorf("tgBot.GetUpdates: %w", err)
+	// 	}
+	// }()
 
 	h := handler{
 		cfg:   cfg,

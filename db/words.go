@@ -131,6 +131,30 @@ func (r *EngWordsRepo) PickOneToPractise(ctx context.Context) (EngWord, error) {
 	return b, nil
 }
 
+func (r *EngWordsRepo) GetAll(ctx context.Context) ([]*EngWord, error) {
+	cur, err := r.c.Find(ctx, bson.D{})
+	if err != nil {
+		return nil, err
+	}
+
+	defer cur.Close(ctx)
+
+	var words []*EngWord
+	for cur.Next(ctx) {
+		var b EngWord
+		err := cur.Decode(&b)
+		if err != nil {
+			return nil, err
+		}
+		words = append(words, &b)
+	}
+	if err := cur.Err(); err != nil {
+		return nil, err
+	}
+
+	return words, nil
+}
+
 func (r *EngWordsRepo) Save(ctx context.Context, w EngWord) error {
 	filter := bson.M{"_id": w.ID}
 	upd := bson.M{"$set": w}
